@@ -25,7 +25,6 @@ class DAEModule():
             RHS = lambda uk: uk
         
         else:
-            I_tot[:I_A1.shape[0], :I_A1.shape[0]] = I_A1
             I_tot = csc_matrix(I_tot)
             u0 = np.zeros((self.A.shape[1],1)); u0[:M-1] = 1
             LHS = splu(I_tot - self.dtau * self.A)
