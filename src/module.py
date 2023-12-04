@@ -23,7 +23,6 @@ class DAEModule():
             u0 = np.ones((self.A.shape[1],1))
             LHS = splu(eye(self.A.shape[0], format = 'csc') - self.dtau * I_tot.dot(self.A))
             RHS = lambda uk: uk
-            return self.impl_euler(LHS, RHS, u0)
         
         else:
             I_tot[:I_A1.shape[0], :I_A1.shape[0]] = I_A1
@@ -31,7 +30,8 @@ class DAEModule():
             u0 = np.zeros((self.A.shape[1],1)); u0[:M-1] = 1
             LHS = splu(I_tot - self.dtau * self.A)
             RHS = lambda uk: I_tot.dot(uk)
-            return self.impl_euler(LHS, RHS, u0)
+
+        return self.impl_euler(LHS, RHS, u0)
 
     def impl_euler(self, LHS, RHS, u0):
         """Implicit Euler"""
