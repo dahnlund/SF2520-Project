@@ -130,7 +130,8 @@ fig = plt.figure()
 ax = fig.add_subplot(111, projection="3d")
 ax.plot_surface(Z, TAU, u_reg.T)
 ax.plot_surface(Z, TAU, u.T)
-ax.legend(("u", "u with reg"))
+ax.legend(("u with reg", "u"))
+ax.set_zlim(0,1)
 plt.show()
 
 
@@ -141,12 +142,12 @@ fig, ax = plt.subplots()
 (line1,) = ax.plot(z[1:-1], u[:, 0], label="u")
 (line2,) = ax.plot(z[1:-1], u_reg[:, 0], label="u with reg")
 
-
 def update(frame):
-    line1.set_ydata(u_reg[:, frame])
-    line2.set_ydata(u[:, frame])
+    line1.set_ydata(u[:, frame])
+    line2.set_ydata(u_reg[:, frame])
 
     ax.legend()
+    ax.set_ylim(0,1)
     return (line1, line2)
 
 
