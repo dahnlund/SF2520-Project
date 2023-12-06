@@ -5,18 +5,16 @@ from scipy.sparse import csc_matrix, eye
 from scipy.sparse.linalg import splu
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
-from IPython import get_ipython
+# from IPython import get_ipython
 
-if get_ipython() is not None:  # Only run while in Jupyter
-    get_ipython().run_line_magic("matplotlib", "qt")
+# if get_ipython() is not None:  # Only run while in Jupyter
+#     get_ipython().run_line_magic("matplotlib", "qt")
 
 
 # %%
 class DAEModule:
-    def __init__(self, A, A1, A2, dtau, M, N):
+    def __init__(self, A, M, N, dtau):
         self.A = A
-        self.A1 = A1
-        self.A2 = A2
         self.dtau = dtau
         self.M = M
         self.N = N
@@ -25,35 +23,34 @@ class DAEModule:
         I_A1 = np.eye(M - 1)
         I_tot = np.zeros((M + N - 1, M + N - 1))
         I_tot[: M - 1, : M - 1] = I_A1
+        u0 = np.ones((M + N - 1, 1))
 
         if epsilon != 0:
             I_tot[M - 1 :, M - 1 :] = 1 / epsilon * np.eye(N)
             I_tot = csc_matrix(I_tot)
-            u0 = np.ones((M + N - 1, 1))
             LHS = splu(eye(M + N - 1, format="csc") - self.dtau * I_tot.dot(self.A))
             RHS = lambda uk: uk
 
         else:
             I_tot = csc_matrix(I_tot)
-            u0 = np.zeros((M + N - 1, 1))
             u0[: M - 1] = 1
             LHS = splu(I_tot - self.dtau * self.A)
             RHS = lambda uk: I_tot.dot(uk)
 
-        return self.impl_euler(LHS, RHS, u0)
+        return impl_euler(LHS, RHS, u0, dtau)
 
-    def impl_euler(self, LHS, RHS, u0):
-        """Implicit Euler"""
-        tau = np.arange(self.dtau, 1, self.dtau)
-        saved_u = np.zeros((len(u0), len(tau)))
-        saved_u[:, 0] = u0[:, 0]
+def impl_euler(LHS, RHS, u0, dtau):
+    """Implicit Euler"""
+    tau = np.arange(dtau, 1, dtau)
+    saved_u = np.zeros((len(u0), len(tau)))
+    saved_u[:, 0] = u0[:, 0]
 
-        uk = u0
-        for i, _ in enumerate(tau):
-            u_new = LHS.solve(RHS(uk))
-            saved_u[:, i] = u_new[:, 0]
-            uk = u_new
-        return tau, saved_u
+    uk = u0
+    for i, _ in enumerate(tau):
+        u_new = LHS.solve(RHS(uk))
+        saved_u[:, i] = u_new[:, 0]
+        uk = u_new
+    return tau, saved_u
 
 
 def v(z):
@@ -112,7 +109,7 @@ A = sp.vstack([block1, block2, block3])
 
 # %%
 dtau = 0.001
-model = DAEModule(A, A1, A2, dtau, M, N)
+model = DAEModule(A, M, N, dtau)
 
 tau, u = model.solve()
 _, u_reg = model.solve(0.01)
