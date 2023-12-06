@@ -44,7 +44,7 @@ def impl_euler(LHS, RHS, u0, dtau):
         u_new = LHS.solve(RHS(uk))
         saved_u[:, i] = u_new[:, 0]
         uk = u_new
-    return tau, saved_u
+    return saved_u
 
 
 def v(z):
@@ -105,19 +105,17 @@ N = round(M * w)
 z = np.linspace(0, 1 + w, M + N + 1)
 A = create_A(M, N, z, eta, gamma, alpha)
 
-dtau = 0.001
-tau, u = impl_euler(*create_DAE_system(A, M, N, dtau, epsilon=0))
-_, u_reg = impl_euler(*create_DAE_system(A, M, N, dtau, epsilon=0.01))
-
+dtau = 0.01
+u = impl_euler(*create_DAE_system(A, M, N, dtau, epsilon=0))
 
 # %% 3D plot
+tau = np.arange(dtau, 1, dtau)
 Z, TAU = np.meshgrid(z[1:-1], tau)
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection="3d")
-ax.plot_surface(Z, TAU, u_reg.T)
-ax.plot_surface(Z, TAU, u.T)
-ax.legend(("u with reg", "u"))
+ax.plot_surface(Z, TAU, u.T, label="u")
+ax.legend()
 ax.set_zlim(0, 1)
 plt.show()
 
@@ -127,19 +125,17 @@ fig, ax = plt.subplots()
 
 # Plot the initial lines
 (line1,) = ax.plot(z[1:-1], u[:, 0], label="u")
-(line2,) = ax.plot(z[1:-1], u_reg[:, 0], label="u with reg")
 
 
 def update(frame):
     line1.set_ydata(u[:, frame])
-    line2.set_ydata(u_reg[:, frame])
 
     ax.legend()
     ax.set_ylim(0, 1)
-    return (line1, line2)
+    return (line1,)
 
 
-ani = FuncAnimation(fig, update, frames=range(u_reg.shape[1]), interval=1)
+ani = FuncAnimation(fig, update, frames=range(u.shape[1]), interval=1)
 plt.show()
 
 # %%
