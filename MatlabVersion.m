@@ -82,3 +82,32 @@ title("How u changes over tau (Regularization+Implicit Euler)")
 
 %% Analytic reduction and Implicit Euler
 
+%beta=alpha*sqrt(gamma)*((1-(1/exp(2*w*sqrt(gamma))))/((1/exp(2*w*sqrt(gamma)))+1))
+%Beta above ^ is the same as:
+beta=alpha*sqrt(gamma)*tanh(w*sqrt(gamma));
+
+%Since we are just solving the PDE(which has a new boundary condition at Z=1)
+e = ones(M-1,1).*(eta./((dz^2)*v(zv)'));
+A1 = spdiags([[e(2:end);e(1)] -2*e [e(1);e(1:end-1);]], -1:1, M-1, M-1);
+A1(1,1)=A1(1,1)/3; A1(1,2)=A1(1,2)*2/3; %Change boundary
+A1(end,end)=(eta*((1/(1+dz*beta))-2))/(v(zv(end)*dz^2)); %The new boundary condition
+
+uVec=[]; uVec(:,1)=ones(M-1,1); %Change this for different starting values
+
+B=[eye(M-1)-dt*A1];
+t=dt:dt:1;
+for i=t
+    u_new=B\uVec(:,end);
+    uVec=[uVec u_new];
+end
+
+%Plots the total uVec
+t=0:dt:1;
+z=dz:dz:1-dz;
+
+figure(3)
+mesh(z,t,uVec')
+xlabel("Z")
+ylabel("T")
+zlabel("U")
+title("How u changes over tau (Analytic reduction+Implicit Euler)")
