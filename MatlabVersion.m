@@ -46,6 +46,7 @@ for i=t
     u_new=B\(eyeUg*uVec(:,end));
     uVec=[uVec u_new];
 end
+uVec(1,end)
 
 %Plots the total uVec
 t=0:dt:1;
@@ -69,6 +70,7 @@ for i=t
     u_new=B\uVec(:,end);
     uVec=[uVec u_new];
 end
+uVec(1,end)
 
 %Plots the total uVec
 t=0:dt:1;
@@ -90,7 +92,8 @@ beta=alpha*sqrt(gamma)*tanh(w*sqrt(gamma));
 e = ones(M-1,1).*(eta./((dz^2)*v(zv)'));
 A1 = spdiags([[e(2:end);e(1)] -2*e [e(1);e(1:end-1);]], -1:1, M-1, M-1);
 A1(1,1)=A1(1,1)/3; A1(1,2)=A1(1,2)*2/3; %Change boundary
-A1(end,end)=(eta*((1/(1+dz*beta))-2))/(v(zv(end)*dz^2)); %The new boundary condition
+%A1(end,end)=(eta*((1/(1+dz*beta))-2))/(v(zv(end)*dz^2)); %The new boundary condition
+A1(end,end)=A1(end,end)*(1-1/(2*(1+dz*beta)));
 
 uVec=[]; uVec(:,1)=ones(M-1,1); %Change this for different starting values
 
@@ -100,7 +103,7 @@ for i=t
     u_new=B\uVec(:,end);
     uVec=[uVec u_new];
 end
-
+uVec(1,end)
 %Plots the total uVec
 t=0:dt:1;
 z=dz:dz:1-dz;
