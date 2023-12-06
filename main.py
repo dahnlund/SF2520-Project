@@ -5,10 +5,10 @@ from scipy.sparse import csc_matrix, eye
 from scipy.sparse.linalg import splu
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
-# from IPython import get_ipython
+from IPython import get_ipython
 
-# if get_ipython() is not None:  # Only run while in Jupyter
-#     get_ipython().run_line_magic("matplotlib", "qt")
+if get_ipython() is not None:  # Only run while in Jupyter
+    get_ipython().run_line_magic("matplotlib", "qt")
 
 
 # %%
@@ -38,6 +38,7 @@ class DAEModule:
             RHS = lambda uk: I_tot.dot(uk)
 
         return impl_euler(LHS, RHS, u0, dtau)
+
 
 def impl_euler(LHS, RHS, u0, dtau):
     """Implicit Euler"""
