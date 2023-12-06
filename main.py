@@ -4,12 +4,6 @@ import scipy.sparse as sp
 from scipy.sparse import csc_matrix, eye
 from scipy.sparse.linalg import splu
 from matplotlib import pyplot as plt
-from matplotlib.animation import FuncAnimation
-
-# from IPython import get_ipython
-
-# if get_ipython() is not None:  # Only run while in Jupyter
-#     get_ipython().run_line_magic("matplotlib", "qt")
 
 
 def create_DAE_system(A, M, N, dtau, epsilon: float = 0):
