@@ -95,47 +95,31 @@ def create_A(M, N, z, eta, gamma, alpha):
     return A
 
 
-# %%
-eta = 0.2
-gamma = 100
-alpha = 0.2
-w = 0.3
-M = 1000
-N = round(M * w)
-z = np.linspace(0, 1 + w, M + N + 1)
-A = create_A(M, N, z, eta, gamma, alpha)
+def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01):
+    N = round(M * w)
+    z = np.linspace(0, 1 + w, M + N + 1)
+    A = create_A(M, N, z, eta, gamma, alpha)
 
-dtau = 0.01
-u = impl_euler(*create_DAE_system(A, M, N, dtau, epsilon=0))
+    dtau = 0.01
+    u = impl_euler(*create_DAE_system(A, M, N, dtau, epsilon=epsilon))
+    tau = np.arange(dtau, 1, dtau)
 
-# %% 3D plot
-tau = np.arange(dtau, 1, dtau)
-Z, TAU = np.meshgrid(z[1:-1], tau)
+    n_traces = 10
+    colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection="3d")
-ax.plot_surface(Z, TAU, u.T, label="u")
-ax.legend()
-ax.set_zlim(0, 1)
-plt.show()
+    title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
 
-
-# %%
-fig, ax = plt.subplots()
-
-# Plot the initial lines
-(line1,) = ax.plot(z[1:-1], u[:, 0], label="u")
+    for i in range(n_traces):
+        j = int(i * (len(tau) / n_traces))
+        plt.plot(z[1:-1], u[:, j], label=f"tau={tau[j]:.2f}", color=colors[i])
+    plt.legend()
+    plt.ylim(0, 1.05)
+    plt.grid()
+    plt.title(title, fontsize=9.5)
+    plt.savefig(f"figures/{title}.png")
 
 
-def update(frame):
-    line1.set_ydata(u[:, frame])
-
-    ax.legend()
-    ax.set_ylim(0, 1)
-    return (line1,)
-
-
-ani = FuncAnimation(fig, update, frames=range(u.shape[1]), interval=1)
-plt.show()
+if __name__ == "__main__":
+    main()
 
 # %%
