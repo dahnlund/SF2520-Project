@@ -106,14 +106,16 @@ def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01):
     for i in range(n_traces):
         j = int(i * (len(tau) / n_traces))
         plt.plot(z[1:-1], u[:, j], label=f"tau={tau[j]:.2f}", color=colors[i])
-    plt.legend()
+    # plt.legend()
     plt.ylim(0, 1.05)
     plt.grid()
     plt.title(title, fontsize=9.5)
     plt.savefig(f"figures/{title}.png")
+    plt.clf()
 
 
 if __name__ == "__main__":
-    main()
+    for eta in [0.2, 0.4, 0.6]:
+        main(eta=eta)
 
 # %%
