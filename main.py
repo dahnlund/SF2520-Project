@@ -20,7 +20,7 @@ def create_DAE_system(A, M, N, dtau, epsilon: float = 0):
 
     else:
         I_tot = csc_matrix(I_tot)
-        u0[: M - 1] = 1
+        u0[M - 1:] -= 1
         LHS = splu(I_tot - dtau * A)
         RHS = lambda uk: I_tot.dot(uk)
 
