@@ -97,7 +97,7 @@ def plot3d(z: Matrix, tau: Matrix, u: Matrix):
     TAU, Z = np.meshgrid(tau,z)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(Z, TAU, u)#, cmap='viridis')
+    ax.plot_surface(Z, TAU, u, cmap='viridis')
     ax.set_zlim([0,1.05])
     ax.set_xlim([0,1.3])
     ax.set_xlabel("z")
