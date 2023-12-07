@@ -90,7 +90,6 @@ def create_A(M, N, z, eta, gamma, alpha):
     A = sp.vstack([block1, block2, block3])
     return A
 
-
 def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01):
     N = round(M * w)
     z = np.linspace(0, 1 + w, M + N + 1)
@@ -112,8 +111,11 @@ def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01):
     plt.ylim(0, 1.05)
     plt.grid()
     plt.title(title, fontsize=9.5)
-    plt.savefig(f"figures/{title}.png")
-    plt.clf()
+    try:
+        plt.savefig(f"figures/{title}.png")
+        plt.clf()
+    except:
+        print("Couldn't save file since 'figures' directory doesn't exist")
 
 
 if __name__ == "__main__":
