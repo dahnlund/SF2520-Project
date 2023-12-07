@@ -53,6 +53,9 @@ t=0:dt:1;
 z=dz:dz:1+w;
 figure(1)
 mesh(z,t,uVec')
+xlim([0 1.3])
+ylim([0 1])
+zlim([0 1.2])
 xlabel("Z")
 ylabel("T")
 zlabel("U")
@@ -77,6 +80,9 @@ t=0:dt:1;
 z=dz:dz:1+w;
 figure(2)
 mesh(z,t,uVec')
+xlim([0 1.3])
+ylim([0 1])
+zlim([0 1.2])
 xlabel("Z")
 ylabel("T")
 zlabel("U")
@@ -110,6 +116,9 @@ z=dz:dz:1-dz;
 
 figure(3)
 mesh(z,t,uVec')
+xlim([0 1.3])
+ylim([0 1])
+zlim([0 1.2])
 xlabel("Z")
 ylabel("T")
 zlabel("U")
