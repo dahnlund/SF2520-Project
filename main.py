@@ -30,14 +30,16 @@ def create_DAE_system(A, M, N, dtau, epsilon: float = 0):
 def impl_euler(LHS, RHS, u0, dtau):
     """Implicit Euler"""
     tau = np.arange(dtau, 1, dtau)
-    saved_u = np.zeros((len(u0), len(tau)))
+    saved_u = np.zeros((len(u0), len(tau)+1))
     saved_u[:, 0] = u0[:, 0]
 
     uk = u0
     for i, _ in enumerate(tau):
         u_new = LHS.solve(RHS(uk))
-        saved_u[:, i] = u_new[:, 0]
+        saved_u[:, i+1] = u_new[:, 0]
         uk = u_new
+
+    saved_u = np.vstack([1/3*(4*saved_u[0,:]-saved_u[1,:]),saved_u, 1/3*(4*saved_u[-1,:]-saved_u[-2,:])])
     return saved_u
 
 
@@ -105,7 +107,7 @@ def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01):
 
     for i in range(n_traces):
         j = int(i * (len(tau) / n_traces))
-        plt.plot(z[1:-1], u[:, j], label=f"tau={tau[j]:.2f}", color=colors[i])
+        plt.plot(z, u[:, j], label=f"tau={tau[j]:.2f}", color=colors[i])
     # plt.legend()
     plt.ylim(0, 1.05)
     plt.grid()
