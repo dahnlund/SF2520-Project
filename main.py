@@ -120,9 +120,10 @@ def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01, sur
 
     for i in range(n_traces):
         j = int(i * (len(tau) / n_traces))
-        plt.plot(z, u[:, j], label=f"tau={tau[j]:.2f}", color=colors[i])
-    # plt.legend()
+        plt.plot(z, u[:, j], label=f"t={tau[j]:.2f}", color=colors[i])
+    plt.legend(loc="lower left", fontsize=6)
     plt.ylim(0, 1.05)
+    plt.xlim(0, 1 + w)
     plt.grid()
     plt.title(title, fontsize=9.5)
     plt.show()
@@ -137,7 +138,5 @@ def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01, sur
 
 
 if __name__ == "__main__":
-    for eta in [0.2, 0.4, 0.6]:
-        main(eta=eta, M=1000, surface_plot=True)
-
-# %%
+    for M in [10, 100, 1000]:
+        main(M=M, surface_plot=True)
