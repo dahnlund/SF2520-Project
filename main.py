@@ -4,9 +4,12 @@ import scipy.sparse as sp
 from scipy.sparse import csc_matrix, eye
 from scipy.sparse.linalg import splu
 from matplotlib import pyplot as plt
+import numpy.typing as npt
+from typing import Callable, Any
 
+Matrix = npt.NDArray[np.float64]
 
-def create_DAE_system(A, M, N, dtau, epsilon: float = 0):
+def create_DAE_system(A: Matrix, M: int, N: int, dtau: float, epsilon: float = 0):
     I_A1 = np.eye(M - 1)
     I_tot = np.zeros((M + N - 1, M + N - 1))
     I_tot[: M - 1, : M - 1] = I_A1
@@ -20,14 +23,14 @@ def create_DAE_system(A, M, N, dtau, epsilon: float = 0):
 
     else:
         I_tot = csc_matrix(I_tot)
-        u0[M - 1:] -= 1
+        u0[M-1:] -= 1
         LHS = splu(I_tot - dtau * A)
         RHS = lambda uk: I_tot.dot(uk)
 
     return LHS, RHS, u0, dtau
 
 
-def impl_euler(LHS, RHS, u0, dtau):
+def impl_euler(LHS: Any, RHS: Callable, u0: Matrix, dtau: float) -> Matrix:
     """Implicit Euler"""
     tau = np.arange(dtau, 1, dtau)
     saved_u = np.zeros((len(u0), len(tau)+1))
@@ -47,7 +50,7 @@ def v(z):
     return 1 - 4 * (z - 1 / 2) ** 2
 
 
-def create_A(M, N, z, eta, gamma, alpha):
+def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha) -> Matrix:
     dz = 1 / M
     A1_data = np.array(
         [
@@ -90,14 +93,25 @@ def create_A(M, N, z, eta, gamma, alpha):
     A = sp.vstack([block1, block2, block3])
     return A
 
-def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01):
+def plot3d(z: Matrix, tau: Matrix, u: Matrix):
+    TAU, Z = np.meshgrid(tau,z)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(Z, TAU, u)#, cmap='viridis')
+    ax.set_zlim([0,1.05])
+    ax.set_xlim([0,1.3])
+    ax.set_xlabel("z")
+    ax.set_ylabel("tau")
+    plt.show()
+
+def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01, surface_plot = False):
     N = round(M * w)
     z = np.linspace(0, 1 + w, M + N + 1)
     A = create_A(M, N, z, eta, gamma, alpha)
 
     dtau = 0.01
     u = impl_euler(*create_DAE_system(A, M, N, dtau, epsilon=epsilon))
-    tau = np.arange(dtau, 1, dtau)
+    tau = np.arange(0, 1, dtau)
 
     n_traces = 10
     colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
@@ -111,15 +125,19 @@ def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01):
     plt.ylim(0, 1.05)
     plt.grid()
     plt.title(title, fontsize=9.5)
+    plt.show()
     try:
         plt.savefig(f"figures/{title}.png")
         plt.clf()
     except:
         print("Couldn't save file since 'figures' directory doesn't exist")
 
+    if surface_plot == True:
+        plot3d(z, tau, u)
+
 
 if __name__ == "__main__":
     for eta in [0.2, 0.4, 0.6]:
-        main(eta=eta)
+        main(eta=eta, M=1000, surface_plot=True)
 
 # %%
