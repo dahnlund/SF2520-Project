@@ -9,19 +9,20 @@ from typing import Callable, Any
 
 Array = NDArray[np.float64]
 
+
 def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0):
     I_tot_diag = np.zeros(M + N - 1)
     I_tot_diag[: M - 1] = 1  # A_1 part of the matrix
-    u0 = np.ones((M + N - 1, 1))
+    u0 = np.ones(M + N - 1)
 
     if epsilon != 0:
         I_tot_diag[M - 1 :] = 1 / epsilon
-        I_tot = sp.spdiags([I_tot_diag], diags=0)
+        I_tot = csc_matrix(sp.spdiags([I_tot_diag], diags=0))
         LHS = splu(eye(M + N - 1, format="csc") - dtau * I_tot.dot(A))
         RHS = lambda uk: uk
     else:
-        I_tot = sp.spdiags([I_tot_diag], diags=0)
-        u0[M - 1 :] -= 1
+        I_tot = csc_matrix(sp.spdiags([I_tot_diag], diags=0))
+        u0[M - 1 :] = 0
         LHS = splu(I_tot - dtau * A)
         RHS = lambda uk: I_tot.dot(uk)
 
@@ -31,23 +32,18 @@ def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0)
 def impl_euler(LHS: Any, RHS: Callable, u0: Array, dtau: float) -> Array:
     """Implicit Euler"""
     tau = np.arange(dtau, 1, dtau)
-    saved_u = np.zeros((len(u0), len(tau) + 1))
-    saved_u[:, 0] = u0[:, 0]
+    n_steps = len(tau)
+    u = np.zeros((len(u0), n_steps + 1))
+    u[:, 0] = u0
 
-    uk = u0
-    for i, _ in enumerate(tau):
-        u_new = LHS.solve(RHS(uk))
-        saved_u[:, i + 1] = u_new[:, 0]
-        uk = u_new
+    for i in range(n_steps):
+        u[:, i + 1] = LHS.solve(RHS(u[:, i]))
 
-    saved_u = np.vstack(
-        [
-            1 / 3 * (4 * saved_u[0, :] - saved_u[1, :]),
-            saved_u,
-            1 / 3 * (4 * saved_u[-1, :] - saved_u[-2, :]),
-        ]
-    )
-    return saved_u
+    # Adding the boundary values
+    left_bv = 1 / 3 * (4 * u[0] - u[1])
+    right_bv = 1 / 3 * (4 * u[-1] - u[-2])
+    u = np.vstack([left_bv, u, right_bv])
+    return u
 
 
 def v(z: Array) -> Array:
@@ -162,7 +158,7 @@ def main(
     plt.xlim(0, 1 + w)
     plt.grid()
     plt.title(title, fontsize=9.5)
-    
+
     try:
         plt.savefig(f"figures/{title}.png")
     except:
@@ -176,6 +172,6 @@ def main(
 
 if __name__ == "__main__":
     for M in [100]:
-        main(M=M, analytic_reduction=True)
+        main(M=M, analytic_reduction=False)
 
 # %%
