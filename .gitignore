@@ -1,3 +1,5 @@
 venv/
 *.pyc
 figures/
+report/
+.DS_Store
