@@ -1,10 +1,11 @@
 # %% Part 2
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse import csc_matrix, eye, sparray
+from scipy.sparse import csc_matrix, eye
 from scipy.sparse.linalg import splu
 from matplotlib import pyplot as plt
 from numpy.typing import NDArray
+from pathlib import Path
 from typing import Callable, Any
 
 Array = NDArray[np.float64]
@@ -103,16 +104,42 @@ def create_A(
     return A
 
 
-def plot3d(z: Array, tau: Array, u: Array):
+def plot_curve_sequence(
+    z: Array, tau: Array, u: Array, w: float, title: str, n_traces: int = 10
+):
+    colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
+    for i in range(n_traces):
+        j = int(i * (len(tau) / n_traces))
+        plt.plot(z, u[:, j], label=f"t={tau[j]:.2f}", color=colors[i])
+    plt.legend(loc="lower left", fontsize=6)
+    plt.ylim(0, 1.05)
+    plt.xlim(0, 1 + w)
+    plt.grid()
+    plt.title(title, fontsize=9.5)
+    show_save_fig(f"curve/{title}")
+
+
+def plot3d(z: Array, tau: Array, u: Array, title):
     TAU, Z = np.meshgrid(tau, z)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
-    ax.plot_surface(Z, TAU, u, cmap="viridis")
+    ax.plot_surface(TAU, Z, u, cmap="viridis")
     ax.set_zlim([0, 1.05])
     ax.set_xlim([0, 1.3])
-    ax.set_xlabel("z")
-    ax.set_ylabel("tau")
-    plt.show()
+    ax.set_title(title)
+    ax.set_xlabel("tau")
+    ax.set_ylabel("z")
+    show_save_fig(f"3dplot/{title}")
+
+
+def show_save_fig(filename: str):
+    if SAVE_FIG:
+        file_path = Path(f"figures/{filename}.png")
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(file_path)
+    if SHOW_FIG:
+        plt.show()
+    plt.clf()
 
 
 def main(
@@ -123,20 +150,19 @@ def main(
     M=1000,
     epsilon=0,
     dtau=0.01,
+    curve_plot=True,
     surface_plot=False,
     analytic_reduction=False,
 ):
-    if analytic_reduction == True:
+    if analytic_reduction:
         N = 0
         # Doesn't make a difference, but want create_DAE to use the right RHS
-        epsilon = True
+        epsilon = 1  # larger than 0
     else:
         N = round(M * w)
 
     z = np.linspace(0, 1 + N / M, M + N + 1)
     A = create_A(M, N, z, eta, gamma, alpha, analytic_reduction, w)
-
-    dtau = 0.01
     LHS, RHS, u0 = create_DAE_system(A, M, N, dtau, epsilon=epsilon)
     u = impl_euler(LHS=LHS, RHS=RHS, u0=u0, dtau=dtau)
     if analytic_reduction:
@@ -144,34 +170,19 @@ def main(
         u[-1, :] = 1 / (3 + 2 * (z[1] - z[0]) * beta) * (4 * u[-2, :] - u[-3, :])
 
     tau = np.arange(0, 1, dtau)
-
-    n_traces = 10
-    colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
-
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
-
-    for i in range(n_traces):
-        j = int(i * (len(tau) / n_traces))
-        plt.plot(z, u[:, j], label=f"t={tau[j]:.2f}", color=colors[i])
-    plt.legend(loc="lower left", fontsize=6)
-    plt.ylim(0, 1.05)
-    plt.xlim(0, 1 + w)
-    plt.grid()
-    plt.title(title, fontsize=9.5)
-
-    try:
-        plt.savefig(f"figures/{title}.png")
-    except:
-        print("Couldn't save file since 'figures' directory doesn't exist")
-    plt.show()
-    plt.clf()
-
-    if surface_plot == True:
-        plot3d(z, tau, u)
+    if curve_plot:
+        plot_curve_sequence(z, tau, u, w, title)
+    if surface_plot:
+        plot3d(z, tau, u, title)
 
 
 if __name__ == "__main__":
-    for M in [100]:
-        main(M=M, analytic_reduction=False)
+    SAVE_FIG = True
+    SHOW_FIG = False
+    for epsilon in [0, 0.01, 0.9]:
+        main(epsilon=epsilon, analytic_reduction=False, surface_plot=True)
+
+    main(analytic_reduction=True, surface_plot=True)
 
 # %%
