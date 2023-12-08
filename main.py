@@ -1,7 +1,7 @@
 # %% Part 2
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse import csc_matrix, eye
+from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import splu
 from matplotlib import pyplot as plt
 from numpy.typing import NDArray
@@ -10,8 +10,9 @@ from typing import Callable, Any
 
 Array = NDArray[np.float64]
 
-
 def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0):
+    """Creates the left-hand and right-hand side and initial value of the 
+    differential algebraic system of equations for the studies problem."""
     I_tot_diag = np.zeros(M + N - 1)
     I_tot_diag[: M - 1] = 1  # A_1 part of the matrix
     u0 = np.ones(M + N - 1)
@@ -19,7 +20,7 @@ def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0)
     if epsilon != 0:
         I_tot_diag[M - 1 :] = 1 / epsilon
         I_tot = csc_matrix(sp.spdiags([I_tot_diag], diags=0))
-        LHS = splu(eye(M + N - 1, format="csc") - dtau * I_tot.dot(A))
+        LHS = splu(sp.eye(M + N - 1, format="csc") - dtau * I_tot.dot(A))
         RHS = lambda uk: uk
     else:
         I_tot = csc_matrix(sp.spdiags([I_tot_diag], diags=0))
@@ -31,7 +32,7 @@ def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0)
 
 
 def impl_euler(LHS: Any, RHS: Callable, u0: Array, dtau: float) -> Array:
-    """Implicit Euler"""
+    """Implicit Euler."""
     tau = np.arange(dtau, 1, dtau)
     n_steps = len(tau)
     u = np.zeros((len(u0), n_steps + 1))
@@ -48,12 +49,14 @@ def impl_euler(LHS: Any, RHS: Callable, u0: Array, dtau: float) -> Array:
 
 
 def v(z: Array) -> Array:
+    """Parabolic velocity profile function v(z)."""
     return 1 - 4 * (z - 1 / 2) ** 2
 
 
 def create_A(
     M: int, N: int, z: Array, eta, gamma, alpha, analytic_reduction=False, w=0
 ) -> Array:
+    """Creates the A matrix for the"""
     dz = 1 / M
 
     A1_data = [
@@ -107,6 +110,7 @@ def create_A(
 def plot_curve_sequence(
     z: Array, tau: Array, u: Array, w: float, title: str, n_traces: int = 10
 ):
+    """Plot a figure with curves for multiple timesteps."""
     colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
     for i in range(n_traces):
         j = int(i * (len(tau) / n_traces))
@@ -119,7 +123,8 @@ def plot_curve_sequence(
     show_save_fig(f"curve/{title}")
 
 
-def plot3d(z: Array, tau: Array, u: Array, title):
+def plot_3d(z: Array, tau: Array, u: Array, title):
+    """Plot a 3D figure of u."""
     TAU, Z = np.meshgrid(tau, z)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
@@ -174,13 +179,13 @@ def main(
     if curve_plot:
         plot_curve_sequence(z, tau, u, w, title)
     if surface_plot:
-        plot3d(z, tau, u, title)
+        plot_3d(z, tau, u, title)
 
 
 if __name__ == "__main__":
     SAVE_FIG = True
     SHOW_FIG = False
-    for epsilon in [0, 0.01, 0.9]:
+    for epsilon in [0, 0.01]:
         main(epsilon=epsilon, analytic_reduction=False, surface_plot=True)
 
     main(analytic_reduction=True, surface_plot=True)
