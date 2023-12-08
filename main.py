@@ -50,7 +50,7 @@ def v(z):
     return 1 - 4 * (z - 1 / 2) ** 2
 
 
-def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha) -> Matrix:
+def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha, analytic = False, w = 0) -> Matrix:
     dz = 1 / M
     A1_data = np.array(
         [
@@ -65,6 +65,12 @@ def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha) -> Matrix:
     A1[0, 0] = eta / (v(z[1]) * dz**2) * (-2 / 3)
     A1[0, 1] = eta / (v(z[1]) * dz**2) * (2 / 3)
 
+    if analytic == True:
+        beta = np.tanh(w*np.sqrt(gamma)) * alpha * np.sqrt(gamma)
+        A1[-1,-1] = eta/v(z[M-1])/(dz**2) * (-2-4*dz*beta)/(3+2*dz*beta)
+        A1[-1,-2] = eta/v(z[M-1])/(dz**2) * (2+2*dz*beta)/(3+2*dz*beta)
+        return A1
+    
     A2_data = np.array(
         [
             np.ones(N - 1) / (dz**2),
@@ -91,7 +97,9 @@ def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha) -> Matrix:
     block2 = sp.hstack([csc_matrix(b1.T), csc_matrix(a), csc_matrix(b2.T)])
     block3 = sp.hstack([csc_matrix(np.zeros((N - 1, M - 1))), csc_matrix(e2), A2])
     A = sp.vstack([block1, block2, block3])
+
     return A
+
 
 def plot3d(z: Matrix, tau: Matrix, u: Matrix):
     TAU, Z = np.meshgrid(tau,z)
@@ -104,13 +112,23 @@ def plot3d(z: Matrix, tau: Matrix, u: Matrix):
     ax.set_ylabel("tau")
     plt.show()
 
-def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01, surface_plot = False):
-    N = round(M * w)
-    z = np.linspace(0, 1 + w, M + N + 1)
-    A = create_A(M, N, z, eta, gamma, alpha)
+def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01, surface_plot = False, analytic_reduction = False):
+
+    if analytic_reduction == True:
+        N = 0
+        epsilon = True # Doesn't make a difference, but want create_DAE to use the right RHS
+    else:
+        N = round(M * w)
+
+    z = np.linspace(0, 1 + N/M, M + N + 1)
+    A = create_A(M, N, z, eta, gamma, alpha, analytic_reduction, w)
 
     dtau = 0.01
     u = impl_euler(*create_DAE_system(A, M, N, dtau, epsilon=epsilon))
+    if analytic_reduction == True:
+        beta = np.tanh(w*np.sqrt(gamma)) * alpha * np.sqrt(gamma)
+        u[-1,:] = 1/(3+2*(z[1]-z[0])*beta)*(4*u[-2,:]-u[-3,:])
+
     tau = np.arange(0, 1, dtau)
 
     n_traces = 10
@@ -138,5 +156,7 @@ def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01, sur
 
 
 if __name__ == "__main__":
-    for M in [10, 100, 1000]:
-        main(M=M, surface_plot=True)
+    for M in [100]:
+        main(M=M, analytic_reduction=True, surface_plot=True)
+
+# %%
