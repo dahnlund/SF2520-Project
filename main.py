@@ -9,21 +9,19 @@ from typing import Callable, Any
 
 Array = NDArray[np.float64]
 
-
 def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0):
-    I_A1 = np.eye(M - 1)
-    I_tot = np.zeros((M + N - 1, M + N - 1))
-    I_tot[: M - 1, : M - 1] = I_A1
+    I_tot_diag = np.zeros(M + N - 1)
+    I_tot_diag[: M - 1] = 1  # A_1 part of the matrix
     u0 = np.ones((M + N - 1, 1))
 
     if epsilon != 0:
-        I_tot[M - 1 :, M - 1 :] = 1 / epsilon * np.eye(N)
-        I_tot = csc_matrix(I_tot)
+        I_tot_diag[M - 1 :] = 1 / epsilon
+        I_tot = sp.spdiags([I_tot_diag], diags=0)
         LHS = splu(eye(M + N - 1, format="csc") - dtau * I_tot.dot(A))
         RHS = lambda uk: uk
     else:
-        I_tot = csc_matrix(I_tot)
-        u0[M-1:] -= 1
+        I_tot = sp.spdiags([I_tot_diag], diags=0)
+        u0[M - 1 :] -= 1
         LHS = splu(I_tot - dtau * A)
         RHS = lambda uk: I_tot.dot(uk)
 
