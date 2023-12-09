@@ -32,7 +32,7 @@ def create_DAE_system(A: Matrix, M: int, N: int, dtau: float, epsilon: float = 0
 
 def impl_euler(LHS: Any, RHS: Callable, u0: Matrix, dtau: float) -> Matrix:
     """Implicit Euler"""
-    tau = np.arange(dtau, 1, dtau)
+    tau = np.linspace(dtau, 1, int(1/dtau))
     saved_u = np.zeros((len(u0), len(tau)+1))
     saved_u[:, 0] = u0[:, 0]
 
@@ -112,11 +112,32 @@ def plot3d(z: Matrix, tau: Matrix, u: Matrix):
     ax.set_ylabel("tau")
     plt.show()
 
-def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01, surface_plot = False, analytic_reduction = False):
+def compute_tot_conc(u: Matrix, tau: Matrix, interval: int):
+
+    ind = np.linspace(0,u.shape[1]-1, interval).astype(int)
+    concentrations = np.zeros(ind.shape)
+    for index, i in enumerate(ind):
+        concentrations[index] = np.trapz(u[:,i])/(u.shape[0]-1)
+    return concentrations, tau[ind]
+    
+
+
+def main(eta=0.2, 
+         gamma=100, 
+         alpha=0.2, 
+         w=0.3, 
+         M=1000, 
+         epsilon=0, 
+         dtau=0.01, 
+         surface_plot = False, 
+         analytic_reduction = False,
+         total_conentration = False,
+         interval = 10,
+         disable_plot = False):
 
     if analytic_reduction == True:
         N = 0
-        epsilon = True # Doesn't make a difference, but want create_DAE to use the right RHS
+        epsilon = False # Doesn't make a difference, but want create_DAE to use the right RHS
     else:
         N = round(M * w)
 
@@ -129,34 +150,51 @@ def main(eta=0.2, gamma=100, alpha=0.2, w=0.3, M=1000, epsilon=0, dtau=0.01, sur
         beta = np.tanh(w*np.sqrt(gamma)) * alpha * np.sqrt(gamma)
         u[-1,:] = 1/(3+2*(z[1]-z[0])*beta)*(4*u[-2,:]-u[-3,:])
 
-    tau = np.arange(0, 1, dtau)
-
-    n_traces = 10
-    colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
+    tau = np.linspace(0, 1, int(1/dtau)+1)
 
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
 
-    for i in range(n_traces):
-        j = int(i * (len(tau) / n_traces))
-        plt.plot(z, u[:, j], label=f"t={tau[j]:.2f}", color=colors[i])
-    plt.legend(loc="lower left", fontsize=6)
-    plt.ylim(0, 1.05)
-    plt.xlim(0, 1 + w)
-    plt.grid()
-    plt.title(title, fontsize=9.5)
-    plt.show()
-    try:
-        plt.savefig(f"figures/{title}.png")
-        plt.clf()
-    except:
-        print("Couldn't save file since 'figures' directory doesn't exist")
+    if total_conentration == True:
+        concentrations, tau_locations = compute_tot_conc(u, tau, interval)
+        plt.plot(tau_locations, concentrations, label = title)
+        plt.grid()
+        plt.title("Total concentration as a function of tau")
+        plt.xlabel("tau")
+        plt.ylabel("Total concentration")
+        plt.legend(loc="lower left", fontsize=6)
+        if disable_plot != True:
+            plt.show()
+
+    if disable_plot != True:
+        n_traces = 10
+        colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
+
+        for i in range(n_traces):
+            j = int(i * (len(tau) / n_traces))
+            plt.plot(z, u[:, j], label=f"t={tau[j]:.2f}", color=colors[i])
+        plt.legend(loc="lower left", fontsize=6)
+        plt.ylim(0, 1.05)
+        plt.xlim(0, 1 + w)
+        plt.grid()
+        plt.title(title, fontsize=9.5)
+        plt.xlabel("z")
+        plt.ylabel("Concentration")
+        plt.show()
+        try:
+            plt.savefig(f"figures/{title}.png")
+            plt.clf()
+        except:
+            print("Couldn't save file since 'figures' directory doesn't exist")
 
     if surface_plot == True:
         plot3d(z, tau, u)
 
-
 if __name__ == "__main__":
-    for M in [100]:
-        main(M=M, analytic_reduction=True, surface_plot=True)
+    for gamma in [50, 100, 150, 200]:
+        main(gamma = gamma, 
+             analytic_reduction=True, 
+             total_conentration=True, 
+             interval=10, 
+             disable_plot=True)
 
 # %%
