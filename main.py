@@ -55,7 +55,7 @@ def v(z: Array) -> Array:
 
 
 def create_A(
-    M: int, N: int, z: Array, eta, gamma, alpha, analytic_reduction=False, w=0
+    M: int, N: int, z: Array, eta, gamma, alpha, w, analytic_reduction=False
 ) -> Array:
     """Creates the A matrix for the"""
     dz = 1 / M
@@ -106,6 +106,11 @@ def create_A(
     block3 = sp.hstack([csc_matrix(np.zeros((N - 1, M - 1))), csc_matrix(e2), A2])
     A = sp.vstack([block1, block2, block3])
     return A
+
+
+def T_fn(u: Array, z: Array, tau: Array, fix_tau: float) -> float:
+    i = np.searchsorted(tau, fix_tau)
+    return np.trapz(u[:, i], z)
 
 
 def plot_curve_sequence(
@@ -167,7 +172,7 @@ def main(
         N = round(M * w)
 
     z = np.linspace(0, 1 + N / M, M + N + 1)
-    A = create_A(M, N, z, eta, gamma, alpha, analytic_reduction, w)
+    A = create_A(M, N, z, eta, gamma, alpha, w, analytic_reduction)
     LHS, RHS, u0 = create_DAE_system(A, M, N, dtau, epsilon=epsilon)
     u = impl_euler(LHS=LHS, RHS=RHS, u0=u0, dtau=dtau)
     if analytic_reduction:
@@ -176,6 +181,9 @@ def main(
 
     tau = np.arange(0, 1, dtau)
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
+    print("\n", title)
+    for fix_tau in np.arange(0, 1, 0.3):
+        print(f"T({fix_tau:.2f}) = {T_fn(u, z, tau, fix_tau):.4f}")
     if curve_plot:
         plot_curve_sequence(z, tau, u, w, title)
     if surface_plot:
