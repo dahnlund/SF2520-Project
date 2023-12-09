@@ -183,7 +183,7 @@ def main(
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
     print("\n", title)
     for fix_tau in np.arange(0, 1, 0.3):
-        print(f"T({fix_tau:.2f}) = {T_integration(u, z, tau, fix_tau):.4f}")
+        print(f"T({fix_tau:.2f}) = {T_integration(u[:M-1], z[:M-1], tau, fix_tau):.4f}")
     if curve_plot:
         plot_curve_sequence(z, tau, u, w, title)
     if surface_plot:
