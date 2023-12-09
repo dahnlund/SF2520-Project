@@ -10,8 +10,9 @@ from typing import Callable, Any
 
 Array = NDArray[np.float64]
 
+
 def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0):
-    """Creates the left-hand and right-hand side and initial value of the 
+    """Creates the left-hand and right-hand side and initial value of the
     differential algebraic system of equations for the studies problem."""
     I_tot_diag = np.zeros(M + N - 1)
     I_tot_diag[: M - 1] = 1  # A_1 part of the matrix
@@ -123,17 +124,16 @@ def plot_curve_sequence(
     show_save_fig(f"curve/{title}")
 
 
-def plot_3d(z: Array, tau: Array, u: Array, title):
-    """Plot a 3D figure of u."""
+def plot_3d(z: Array, tau: Array, u: Array, title: str):
     TAU, Z = np.meshgrid(tau, z)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
-    ax.plot_surface(TAU, Z, u, cmap="viridis")
+    ax.plot_surface(Z, TAU, u, cmap="viridis")
     ax.set_zlim([0, 1.05])
     ax.set_xlim([0, 1.3])
+    ax.set_xlabel("z")
+    ax.set_ylabel("tau")
     ax.set_title(title)
-    ax.set_xlabel("tau")
-    ax.set_ylabel("z")
     show_save_fig(f"3dplot/{title}")
 
 
@@ -182,9 +182,9 @@ def main(
         plot_3d(z, tau, u, title)
 
 
+SAVE_FIG = True
+SHOW_FIG = False
 if __name__ == "__main__":
-    SAVE_FIG = True
-    SHOW_FIG = False
     for epsilon in [0, 0.01]:
         main(epsilon=epsilon, analytic_reduction=False, surface_plot=True)
 
