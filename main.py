@@ -167,7 +167,7 @@ def main(
     if analytic_reduction:
         N = 0
         # Doesn't make a difference, but want create_DAE to use the right RHS
-        epsilon = 1  # larger than 0
+        epsilon = False 
     else:
         N = round(M * w)
 
