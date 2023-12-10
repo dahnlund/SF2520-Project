@@ -7,9 +7,9 @@ from matplotlib import pyplot as plt
 import numpy.typing as npt
 from typing import Callable, Any
 
-Matrix = npt.NDArray[np.float64]
+Array = npt.NDArray[np.float64]
 
-def create_DAE_system(A: Matrix, M: int, N: int, dtau: float, epsilon: float = 0):
+def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0):
     I_A1 = np.eye(M - 1)
     I_tot = np.zeros((M + N - 1, M + N - 1))
     I_tot[: M - 1, : M - 1] = I_A1
@@ -30,7 +30,7 @@ def create_DAE_system(A: Matrix, M: int, N: int, dtau: float, epsilon: float = 0
     return LHS, RHS, u0, dtau
 
 
-def impl_euler(LHS: Any, RHS: Callable, u0: Matrix, dtau: float) -> Matrix:
+def impl_euler(LHS: Any, RHS: Callable, u0: Array, dtau: float) -> Array:
     """Implicit Euler"""
     tau = np.linspace(dtau, 1, int(1/dtau))
     saved_u = np.zeros((len(u0), len(tau)+1))
@@ -50,7 +50,7 @@ def v(z):
     return 1 - 4 * (z - 1 / 2) ** 2
 
 
-def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha, analytic = False, w = 0) -> Matrix:
+def create_A(M: int, N: int, z: Array, eta, gamma, alpha, analytic = False, w = 0) -> Array:
     dz = 1 / M
     A1_data = np.array(
         [
@@ -101,7 +101,7 @@ def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha, analytic = False, w =
     return A
 
 
-def plot3d(z: Matrix, tau: Matrix, u: Matrix):
+def plot3d(z: Array, tau: Array, u: Array):
     TAU, Z = np.meshgrid(tau,z)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -112,12 +112,12 @@ def plot3d(z: Matrix, tau: Matrix, u: Matrix):
     ax.set_ylabel("tau")
     plt.show()
 
-def compute_tot_conc(u: Matrix, tau: Matrix, interval: int):
+def compute_tot_conc(u: Array, z: Array, tau: Array, interval: int):
 
     ind = np.linspace(0,u.shape[1]-1, interval).astype(int)
     concentrations = np.zeros(ind.shape)
     for index, i in enumerate(ind):
-        concentrations[index] = np.trapz(u[:,i])/(u.shape[0]-1)
+        concentrations[index] = np.trapz(u[:,i],z)
     return concentrations, tau[ind]
     
 
@@ -155,7 +155,8 @@ def main(eta=0.2,
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
 
     if total_concentration == True:
-        concentrations, tau_locations = compute_tot_conc(u, tau, interval)
+        concentrations, tau_locations = compute_tot_conc(u, z, tau, interval)
+        print(f'Integral values: \n{np.array([tau_locations,concentrations]).T}')
         plt.plot(tau_locations, concentrations, label = title)
         plt.title("Total concentration as a function of tau")
         plt.xlabel("tau")
@@ -191,12 +192,12 @@ def main(eta=0.2,
         plot3d(z, tau, u)
 
 if __name__ == "__main__":
-    for alpha in [0.1, 0.2, 0.3]:
+    for alpha in [0.2]:
         main(alpha= alpha, 
              analytic_reduction=True, 
              total_concentration=True, 
-             interval=100, 
+             interval=11, 
              disable_plot=True,
-             w = 0.1)
+             dtau = 0.001)
 
 # %%
