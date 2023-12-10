@@ -131,7 +131,7 @@ def main(eta=0.2,
          dtau=0.01, 
          surface_plot = False, 
          analytic_reduction = False,
-         total_conentration = False,
+         total_concentration = False,
          interval = 10,
          disable_plot = False):
 
@@ -154,16 +154,17 @@ def main(eta=0.2,
 
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
 
-    if total_conentration == True:
+    if total_concentration == True:
         concentrations, tau_locations = compute_tot_conc(u, tau, interval)
         plt.plot(tau_locations, concentrations, label = title)
-        plt.grid()
         plt.title("Total concentration as a function of tau")
         plt.xlabel("tau")
         plt.ylabel("Total concentration")
         plt.legend(loc="lower left", fontsize=6)
+        plt.grid()
         if disable_plot != True:
             plt.show()
+
 
     if disable_plot != True:
         n_traces = 10
@@ -190,11 +191,12 @@ def main(eta=0.2,
         plot3d(z, tau, u)
 
 if __name__ == "__main__":
-    for gamma in [50, 100, 150, 200]:
-        main(gamma = gamma, 
+    for alpha in [0.1, 0.2, 0.3]:
+        main(alpha= alpha, 
              analytic_reduction=True, 
-             total_conentration=True, 
-             interval=10, 
-             disable_plot=True)
+             total_concentration=True, 
+             interval=100, 
+             disable_plot=True,
+             w = 0.1)
 
 # %%
