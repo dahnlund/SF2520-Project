@@ -34,7 +34,7 @@ def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0)
 
 def impl_euler(LHS: Any, RHS: Callable, u0: Array, dtau: float) -> Array:
     """Implicit Euler."""
-    tau = np.arange(dtau, 1, dtau)
+    tau = np.linspace(dtau, 1, int(1/dtau))
     n_steps = len(tau)
     u = np.zeros((len(u0), n_steps + 1))
     u[:, 0] = u0
@@ -179,7 +179,7 @@ def main(
         beta = np.tanh(w * np.sqrt(gamma)) * alpha * np.sqrt(gamma)
         u[-1, :] = 1 / (3 + 2 * (z[1] - z[0]) * beta) * (4 * u[-2, :] - u[-3, :])
 
-    tau = np.arange(0, 1, dtau)
+    tau = np.linspace(0, 1, int(1/dtau)+1)
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
     print("\n", title)
     for fix_tau in np.arange(0, 1, 0.3):
