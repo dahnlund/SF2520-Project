@@ -1,84 +1,92 @@
 # %% Part 2
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse import csc_matrix, eye
+from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import splu
 from matplotlib import pyplot as plt
-import numpy.typing as npt
+from numpy.typing import NDArray
+from pathlib import Path
 from typing import Callable, Any
 
-Matrix = npt.NDArray[np.float64]
+Array = NDArray[np.float64]
 
-def create_DAE_system(A: Matrix, M: int, N: int, dtau: float, epsilon: float = 0):
-    I_A1 = np.eye(M - 1)
-    I_tot = np.zeros((M + N - 1, M + N - 1))
-    I_tot[: M - 1, : M - 1] = I_A1
-    u0 = np.ones((M + N - 1, 1))
+
+def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0):
+    """Creates the left-hand and right-hand side and initial value of the
+    differential algebraic system of equations for the studies problem."""
+    I_tot_diag = np.zeros(M + N - 1)
+    I_tot_diag[: M - 1] = 1  # A_1 part of the matrix
+    u0 = np.ones(M + N - 1)
 
     if epsilon != 0:
-        I_tot[M - 1 :, M - 1 :] = 1 / epsilon * np.eye(N)
-        I_tot = csc_matrix(I_tot)
-        LHS = splu(eye(M + N - 1, format="csc") - dtau * I_tot.dot(A))
+        I_tot_diag[M - 1 :] = 1 / epsilon
+        I_tot = csc_matrix(sp.spdiags([I_tot_diag], diags=0))
+        LHS = splu(sp.eye(M + N - 1, format="csc") - dtau * I_tot.dot(A))
         RHS = lambda uk: uk
-
     else:
-        I_tot = csc_matrix(I_tot)
-        u0[M-1:] -= 1
+        I_tot = csc_matrix(sp.spdiags([I_tot_diag], diags=0))
+        u0[M - 1 :] = 0
         LHS = splu(I_tot - dtau * A)
         RHS = lambda uk: I_tot.dot(uk)
 
-    return LHS, RHS, u0, dtau
+    return LHS, RHS, u0
 
 
-def impl_euler(LHS: Any, RHS: Callable, u0: Matrix, dtau: float) -> Matrix:
-    """Implicit Euler"""
-    tau = np.linspace(dtau, 1, int(1/dtau))
-    saved_u = np.zeros((len(u0), len(tau)+1))
-    saved_u[:, 0] = u0[:, 0]
+def impl_euler(LHS: Any, RHS: Callable, u0: Array, dtau: float) -> Array:
+    """Implicit Euler."""
+    tau = np.arange(dtau, 1, dtau)
+    n_steps = len(tau)
+    u = np.zeros((len(u0), n_steps + 1))
+    u[:, 0] = u0
 
-    uk = u0
-    for i, _ in enumerate(tau):
-        u_new = LHS.solve(RHS(uk))
-        saved_u[:, i+1] = u_new[:, 0]
-        uk = u_new
+    for i in range(n_steps):
+        u[:, i + 1] = LHS.solve(RHS(u[:, i]))
 
-    saved_u = np.vstack([1/3*(4*saved_u[0,:]-saved_u[1,:]),saved_u, 1/3*(4*saved_u[-1,:]-saved_u[-2,:])])
-    return saved_u
+    # Adding the boundary values
+    left_bv = 1 / 3 * (4 * u[0] - u[1])
+    right_bv = 1 / 3 * (4 * u[-1] - u[-2])
+    u = np.vstack([left_bv, u, right_bv])
+    return u
 
 
-def v(z):
+def v(z: Array) -> Array:
+    """Parabolic velocity profile function v(z)."""
     return 1 - 4 * (z - 1 / 2) ** 2
 
 
-def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha, analytic = False, w = 0) -> Matrix:
+def create_A(
+    M: int, N: int, z: Array, eta, gamma, alpha, w, analytic_reduction=False
+) -> Array:
+    """Creates the A matrix for the"""
     dz = 1 / M
-    A1_data = np.array(
-        [
-            eta * np.ones(M - 1) / (v(z[1:M] + dz) * dz**2),
-            -2 * eta * np.ones(M - 1) / (v(z[1:M]) * dz**2),
-            eta * np.ones(M - 1) / (v(z[1:M] - dz) * dz**2),
-        ]
-    )
-    A1 = sp.spdiags(A1_data, np.array([-1, 0, 1]), format="csc")
+
+    A1_data = [
+        eta * np.ones(M - 1) / (v(z[1:M] + dz) * dz**2),
+        -2 * eta * np.ones(M - 1) / (v(z[1:M]) * dz**2),
+        eta * np.ones(M - 1) / (v(z[1:M] - dz) * dz**2),
+    ]
+    A1 = sp.spdiags(A1_data, [-1, 0, 1], format="csc")
 
     # Adjust for first boundary condition:
     A1[0, 0] = eta / (v(z[1]) * dz**2) * (-2 / 3)
     A1[0, 1] = eta / (v(z[1]) * dz**2) * (2 / 3)
 
-    if analytic == True:
-        beta = np.tanh(w*np.sqrt(gamma)) * alpha * np.sqrt(gamma)
-        A1[-1,-1] = eta/v(z[M-1])/(dz**2) * (-2-4*dz*beta)/(3+2*dz*beta)
-        A1[-1,-2] = eta/v(z[M-1])/(dz**2) * (2+2*dz*beta)/(3+2*dz*beta)
+    if analytic_reduction:
+        beta = np.tanh(w * np.sqrt(gamma)) * alpha * np.sqrt(gamma)
+        A1[-1, -1] = (
+            eta / v(z[M - 1]) / (dz**2) * (-2 - 4 * dz * beta) / (3 + 2 * dz * beta)
+        )
+        A1[-1, -2] = (
+            eta / v(z[M - 1]) / (dz**2) * (2 + 2 * dz * beta) / (3 + 2 * dz * beta)
+        )
         return A1
-    
-    A2_data = np.array(
-        [
-            np.ones(N - 1) / (dz**2),
-            -2 * np.ones(N - 1) / (dz**2) - gamma,
-            np.ones(N - 1) / (dz**2),
-        ]
-    )
-    A2 = sp.spdiags(A2_data, np.array([-1, 0, 1]), format="csc")
+
+    A2_data = [
+        np.ones(N - 1) / (dz**2),
+        -2 * np.ones(N - 1) / (dz**2) - gamma,
+        np.ones(N - 1) / (dz**2),
+    ]
+    A2 = sp.spdiags(A2_data, [-1, 0, 1], format="csc")
     A2[-1, -1] = 1 / (dz**2) * (-2 / 3) - gamma
     A2[-1, -2] = 1 / (dz**2) * (2 / 3)
 
@@ -97,104 +105,97 @@ def create_A(M: int, N: int, z: Matrix, eta, gamma, alpha, analytic = False, w =
     block2 = sp.hstack([csc_matrix(b1.T), csc_matrix(a), csc_matrix(b2.T)])
     block3 = sp.hstack([csc_matrix(np.zeros((N - 1, M - 1))), csc_matrix(e2), A2])
     A = sp.vstack([block1, block2, block3])
-
     return A
 
 
-def plot3d(z: Matrix, tau: Matrix, u: Matrix):
-    TAU, Z = np.meshgrid(tau,z)
+def T_integration(u: Array, z: Array, tau: Array, fix_tau: float) -> float:
+    i = np.searchsorted(tau, fix_tau)
+    return np.trapz(u[:, i], z)
+
+
+def plot_curve_sequence(
+    z: Array, tau: Array, u: Array, w: float, title: str, n_traces: int = 10
+):
+    """Plot a figure with curves for multiple timesteps."""
+    colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
+    for i in range(n_traces):
+        j = int(i * (len(tau) / n_traces))
+        plt.plot(z, u[:, j], label=f"t={tau[j]:.2f}", color=colors[i])
+    plt.legend(loc="lower left", fontsize=6)
+    plt.ylim(0, 1.05)
+    plt.xlim(0, 1 + w)
+    plt.grid()
+    plt.title(title, fontsize=9.5)
+    show_save_fig(f"curve/{title}")
+
+
+def plot_3d(z: Array, tau: Array, u: Array, title: str):
+    TAU, Z = np.meshgrid(tau, z)
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.plot_surface(Z, TAU, u, cmap='viridis')
-    ax.set_zlim([0,1.05])
-    ax.set_xlim([0,1.3])
+    ax = fig.add_subplot(111, projection="3d")
+    ax.plot_surface(Z, TAU, u, cmap="viridis")
+    ax.set_zlim([0, 1.05])
+    ax.set_xlim([0, 1.3])
     ax.set_xlabel("z")
     ax.set_ylabel("tau")
-    plt.show()
-
-def compute_tot_conc(u: Matrix, tau: Matrix, interval: int):
-
-    ind = np.linspace(0,u.shape[1]-1, interval).astype(int)
-    concentrations = np.zeros(ind.shape)
-    for index, i in enumerate(ind):
-        concentrations[index] = np.trapz(u[:,i])/(u.shape[0]-1)
-    return concentrations, tau[ind]
-    
+    ax.set_title(title)
+    show_save_fig(f"3dplot/{title}")
 
 
-def main(eta=0.2, 
-         gamma=100, 
-         alpha=0.2, 
-         w=0.3, 
-         M=1000, 
-         epsilon=0, 
-         dtau=0.01, 
-         surface_plot = False, 
-         analytic_reduction = False,
-         total_conentration = False,
-         interval = 10,
-         disable_plot = False):
+def show_save_fig(filename: str):
+    if SAVE_FIG:
+        file_path = Path(f"figures/{filename}.png")
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(file_path)
+    if SHOW_FIG:
+        plt.show()
+    plt.clf()
 
-    if analytic_reduction == True:
+
+def main(
+    eta=0.2,
+    gamma=100,
+    alpha=0.2,
+    w=0.3,
+    M=1000,
+    epsilon=0,
+    dtau=0.01,
+    curve_plot=True,
+    surface_plot=False,
+    analytic_reduction=False,
+):
+    if analytic_reduction:
         N = 0
-        epsilon = False # Doesn't make a difference, but want create_DAE to use the right RHS
+        # Doesn't make a difference, but want create_DAE to use the right RHS
+        epsilon = 1  # larger than 0
     else:
         N = round(M * w)
 
-    z = np.linspace(0, 1 + N/M, M + N + 1)
-    A = create_A(M, N, z, eta, gamma, alpha, analytic_reduction, w)
+    z = np.linspace(0, 1 + N / M, M + N + 1)
+    A = create_A(M, N, z, eta, gamma, alpha, w, analytic_reduction)
+    LHS, RHS, u0 = create_DAE_system(A, M, N, dtau, epsilon=epsilon)
+    u = impl_euler(LHS=LHS, RHS=RHS, u0=u0, dtau=dtau)
+    if analytic_reduction:
+        beta = np.tanh(w * np.sqrt(gamma)) * alpha * np.sqrt(gamma)
+        u[-1, :] = 1 / (3 + 2 * (z[1] - z[0]) * beta) * (4 * u[-2, :] - u[-3, :])
 
-    dtau = 0.01
-    u = impl_euler(*create_DAE_system(A, M, N, dtau, epsilon=epsilon))
-    if analytic_reduction == True:
-        beta = np.tanh(w*np.sqrt(gamma)) * alpha * np.sqrt(gamma)
-        u[-1,:] = 1/(3+2*(z[1]-z[0])*beta)*(4*u[-2,:]-u[-3,:])
-
-    tau = np.linspace(0, 1, int(1/dtau)+1)
-
+    tau = np.arange(0, 1, dtau)
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
+    print("\n", title)
+    for fix_tau in np.arange(0, 1, 0.3):
+        print(f"T({fix_tau:.2f}) = {T_integration(u[:M-1], z[:M-1], tau, fix_tau):.4f}")
+    if curve_plot:
+        plot_curve_sequence(z, tau, u, w, title)
+    if surface_plot:
+        plot_3d(z, tau, u, title)
 
-    if total_conentration == True:
-        concentrations, tau_locations = compute_tot_conc(u, tau, interval)
-        plt.plot(tau_locations, concentrations, label = title)
-        plt.grid()
-        plt.title("Total concentration as a function of tau")
-        plt.xlabel("tau")
-        plt.ylabel("Total concentration")
-        plt.legend(loc="lower left", fontsize=6)
-        if disable_plot != True:
-            plt.show()
 
-    if disable_plot != True:
-        n_traces = 10
-        colors = plt.get_cmap("viridis")(np.linspace(0.8, 0, n_traces))
-
-        for i in range(n_traces):
-            j = int(i * (len(tau) / n_traces))
-            plt.plot(z, u[:, j], label=f"t={tau[j]:.2f}", color=colors[i])
-        plt.legend(loc="lower left", fontsize=6)
-        plt.ylim(0, 1.05)
-        plt.xlim(0, 1 + w)
-        plt.grid()
-        plt.title(title, fontsize=9.5)
-        plt.xlabel("z")
-        plt.ylabel("Concentration")
-        plt.show()
-        try:
-            plt.savefig(f"figures/{title}.png")
-            plt.clf()
-        except:
-            print("Couldn't save file since 'figures' directory doesn't exist")
-
-    if surface_plot == True:
-        plot3d(z, tau, u)
-
+SAVE_FIG = True
+SHOW_FIG = False
 if __name__ == "__main__":
-    for gamma in [50, 100, 150, 200]:
-        main(gamma = gamma, 
-             analytic_reduction=True, 
-             total_conentration=True, 
-             interval=10, 
-             disable_plot=True)
+    for epsilon in [0, 0.01]:
+        main(epsilon=epsilon, analytic_reduction=False, surface_plot=True)
+
+    main(analytic_reduction=True, surface_plot=True)
 
 # %%
