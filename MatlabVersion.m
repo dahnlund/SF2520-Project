@@ -30,8 +30,9 @@ e2=[1/dz^2;zeros(N-1,1)];
 %Creates A2 matrix
 e = ones(N,1)/(dz^2);
 A2 = spdiags([e -2*e-gamma e], -1:1, N, N);
-A2(end,end)=((-2/(3*dz^2))-gamma); A2(end,end-1)=(2/(3*dz^2)); A2(end-1,end)=0;
-
+%A2(end,end)=((-2/(3*dz^2))-gamma); A2(end,end-1)=(2/(3*dz^2)); %A2(end-1,end)=0;
+A2(end,end)=1/(dz^2)*(-2/3)-gamma;
+A2(end,end-1)=1/(dz^2)*(2/3);
 Atot=[A1 e1 zeros(M-1,N);b1 a b2; zeros(N,M-1) e2 A2];
 
 %% Implicit Euler Method
@@ -57,14 +58,19 @@ uVec(1,end);
 t=0:dt:1;
 z=dz:dz:1+w;
 figure(1)
-mesh(z,t,uVec')
-xlim([0 1.3])
-ylim([0 1])
-zlim([0 1.2])
-xlabel("Z")
-ylabel("T")
-zlabel("U")
-title("How u changes over tau (Implicit Euler)")
+plot(z,uVec(:,find(t==0)),z,uVec(:,find(t==0.1)),z,uVec(:,find(t==0.2)),z,uVec(:,find(t==0.5)),z,uVec(:,find(t==0.7)),z,uVec(:,find(t==0.9)),z,uVec(:,find(t==1)))
+xlabel("z")
+ylabel("u")
+legend("τ=0","τ=0.1","τ=0.2","τ=0.5","τ=0.7","τ=0.9","τ=1")
+title("u over z for different τ (Implicit Euler Method)")
+% mesh(z,t,uVec')
+% xlim([0 1.3])
+% ylim([0 1])
+% zlim([0 1.2])
+% xlabel("Z")
+% ylabel("τ")
+% zlabel("U")
+% title("How u changes over tau (Implicit Euler)")
 
 %% Regularization and Implicit Euler
 epsilon=0.000001;
@@ -96,7 +102,7 @@ xlim([0 1.3])
 ylim([0 1])
 zlim([0 1.2])
 xlabel("Z")
-ylabel("T")
+ylabel("τ")
 zlabel("U")
 title("How u changes over tau (Regularization+Implicit Euler)")
 
@@ -134,7 +140,7 @@ xlim([0 1.3])
 ylim([0 1])
 zlim([0 1.2])
 xlabel("Z")
-ylabel("T")
+ylabel("τ")
 zlabel("U")
 title("How u changes over tau (Analytic reduction+Implicit Euler)")
 
@@ -195,7 +201,7 @@ xlim([0 1.3])
 ylim([0 1])
 zlim([0 1.2])
 xlabel("Z")
-ylabel("T")
+ylabel("τ")
 zlabel("U")
 title("How u changes over tau (Implicit Euler)")
 
@@ -213,5 +219,11 @@ disp("tau=0: "+ 100*trapz(ugVec(:,find(t==0.7)))/(M-2) + "%")
 disp("tau=0: "+ 100*trapz(ugVec(:,find(t==0.9)))/(M-2) + "%")
 disp("tau=0: "+ 100*trapz(ugVec(:,find(t==1)))/(M-2) + "%")
 
+gasPerVec=[];
+for i=1:length(ugVec(:,1))
+    gasPerVec=[gasPerVec trapz(ugVec(:,i))/(M-2)];
+end
+figure(5)
+plot(z(1:M-1),gasPerVec)
 
 
