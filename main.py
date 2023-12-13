@@ -115,9 +115,8 @@ def plot3d(z: Array, tau: Array, u: Array):
 def compute_tot_conc(u: Array, z: Array, tau: Array, interval: int):
 
     ind = np.linspace(0,u.shape[1]-1, interval).astype(int)
-    concentrations = np.zeros(ind.shape)
-    for index, i in enumerate(ind):
-        concentrations[index] = np.trapz(u[:,i],z)
+    concentrations = np.trapz(u[:,ind],z, axis = 0)
+
     return concentrations, tau[ind]
     
 
@@ -154,6 +153,7 @@ def main(eta=0.2,
 
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
 
+
     if total_concentration == True:
         concentrations, tau_locations = compute_tot_conc(u, z, tau, interval)
         print(f'Integral values: \n{np.array([tau_locations,concentrations]).T}')
@@ -182,22 +182,20 @@ def main(eta=0.2,
         plt.xlabel("z")
         plt.ylabel("Concentration")
         plt.show()
-        try:
-            plt.savefig(f"figures/{title}.png")
-            plt.clf()
-        except:
-            print("Couldn't save file since 'figures' directory doesn't exist")
 
     if surface_plot == True:
         plot3d(z, tau, u)
 
 if __name__ == "__main__":
-    for alpha in [0.2]:
-        main(alpha= alpha, 
+    for w in [0.05, 0.1, 0.2, 0.3, 0.40]:
+        main(w = w, 
              analytic_reduction=True, 
              total_concentration=True, 
-             interval=11, 
+             interval=3, 
              disable_plot=True,
-             dtau = 0.001)
+             dtau = 0.0001,
+             epsilon = 0.06,
+             M = 1000,
+             surface_plot=False)
 
 # %%
