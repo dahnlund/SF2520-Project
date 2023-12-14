@@ -6,7 +6,7 @@ from scipy.sparse.linalg import splu
 from matplotlib import pyplot as plt
 from numpy.typing import NDArray
 from pathlib import Path
-from typing import Callable, Any
+from typing import Callable, Any, Tuple
 
 Array = NDArray[np.float64]
 
@@ -107,10 +107,18 @@ def create_A(
     A = sp.vstack([block1, block2, block3])
     return A
 
-
+"""
 def T_integration(u: Array, z: Array, tau: Array, fix_tau: float) -> float:
     i = np.searchsorted(tau, fix_tau)
     return np.trapz(u[:, i], z)
+"""
+
+def T_integration(u: Array, z: Array, tau: Array, interval: int) -> Tuple[Array, Array]:
+
+    ind = np.linspace(0,u.shape[1]-1, interval).astype(int)
+    concentrations = np.trapz(u[:,ind],z, axis = 0)
+
+    return concentrations, tau[ind]
 
 
 def plot_curve_sequence(
@@ -141,6 +149,15 @@ def plot_3d(z: Array, tau: Array, u: Array, title: str):
     ax.set_title(title)
     show_save_fig(f"3dplot/{title}")
 
+def plot_T(concentrations: Array, tau_locations: Array, title: str):
+    plt.plot(tau_locations, concentrations, label = title)
+    plt.title("Total concentration as a function of tau")
+    plt.xlabel("tau")
+    plt.ylabel("Total concentration")
+    plt.legend(loc="lower left", fontsize=6)
+    plt.grid()
+    show_save_fig(f"T/{title}")
+
 
 def show_save_fig(filename: str):
     if SAVE_FIG:
@@ -163,6 +180,8 @@ def main(
     curve_plot=True,
     surface_plot=False,
     analytic_reduction=False,
+    Tplot = False,
+    interval = 11
 ):
     if analytic_reduction:
         N = 0
@@ -182,8 +201,13 @@ def main(
     tau = np.linspace(0, 1, int(1/dtau)+1)
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
     print("\n", title)
-    for fix_tau in np.arange(0, 1, 0.3):
-        print(f"T({fix_tau:.2f}) = {T_integration(u[:M-1], z[:M-1], tau, fix_tau):.4f}")
+    
+    if Tplot == True:
+        concentrations, tau_locations = T_integration(u[:M+1,:], z[:M+1], tau, interval)
+        for ind, val in enumerate(concentrations):
+            print(f"T({tau_locations[ind]:.2f}) = {val:.4f}")
+        plot_T(concentrations, tau_locations, title = title)
+
     if curve_plot:
         plot_curve_sequence(z, tau, u, w, title)
     if surface_plot:
@@ -194,8 +218,8 @@ SAVE_FIG = True
 SHOW_FIG = False
 if __name__ == "__main__":
     for epsilon in [0, 0.01]:
-        main(epsilon=epsilon, analytic_reduction=False, surface_plot=True)
+        main(epsilon=epsilon, analytic_reduction=False, surface_plot=True, Tplot=True, interval = 100)
 
-    main(analytic_reduction=True, surface_plot=True)
+    main(analytic_reduction=True, surface_plot=True, Tplot = True, interval = 100)
 
 # %%
