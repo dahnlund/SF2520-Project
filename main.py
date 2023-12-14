@@ -218,8 +218,8 @@ SAVE_FIG = True
 SHOW_FIG = False
 if __name__ == "__main__":
     for epsilon in [0, 0.01]:
-        main(epsilon=epsilon, analytic_reduction=False, surface_plot=True, Tplot=True, interval = 100)
+        main(epsilon=epsilon, analytic_reduction=False, surface_plot=True, Tplot=True)
 
-    main(analytic_reduction=True, surface_plot=True, Tplot = True, interval = 100)
+    main(analytic_reduction=True, surface_plot=True, Tplot = True)
 
 # %%
