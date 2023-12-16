@@ -60,15 +60,13 @@ def create_A(
     """Creates the A matrix for the"""
     dz = 1 / M
     A1_data = eta * np.ones((3, M - 1)) / dz**2
-    print(A1_data.shape, z.shape)
-    A1_data[0, :-1] *= 1 / v(z[1:M-1] + dz)
+    A1_data[0, :-1] *= 1 / v(z[1 : M - 1] + dz)
     A1_data[1] *= -2 / v(z[1:M])
     A1_data[2, 1:] *= 1 / v(z[2:M] - dz)
     # Adjust first row for first boundary condition:
     A1_data[1, 0] *= 1 / 3
     A1_data[2, 1] *= 2 / 3
     A1 = sp.spdiags(A1_data, [-1, 0, 1], format="csc")
-
 
     if analytic_reduction:
         beta = np.tanh(w * np.sqrt(gamma)) * alpha * np.sqrt(gamma)
@@ -80,22 +78,23 @@ def create_A(
         )
         return A1
 
-    A2_data = [
-        np.ones(N - 1) / (dz**2),
-        -2 * np.ones(N - 1) / (dz**2) - gamma,
-        np.ones(N - 1) / (dz**2),
-    ]
+    A2_data = np.ones((3, N - 1)) / (dz**2)
+    A2_data[1, :-1] = -2 * np.ones(N - 2) / (dz**2) - gamma
+    # Adjust last row for second boundary condition:
+    A2_data[1, -1] = -2 / (3 * dz**2) - gamma
+    A2_data[2, -1] = 2 / (3 * dz**2)
     A2 = sp.spdiags(A2_data, [-1, 0, 1], format="csc")
-    A2[-1, -1] = 1 / (dz**2) * (-2 / 3) - gamma
-    A2[-1, -2] = 1 / (dz**2) * (2 / 3)
 
     b1 = np.zeros((M - 1, 1))
     b1[-1] = -1 / dz
+
     b2 = np.zeros((N - 1, 1))
     b2[0] = -alpha / dz
+
     a = (1 + alpha) / dz
+
     e1 = np.zeros((M - 1, 1))
-    e1[-1] = eta / ((dz**2) * v((M - 1) * dz))
+    e1[-1] = eta / ((dz**2) * v(z[M - 1]))
 
     e2 = np.zeros((N - 1, 1))
     e2[0] = 1 / (dz**2)
