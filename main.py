@@ -107,12 +107,6 @@ def create_A(
     A = sp.vstack([block1, block2, block3])
     return A
 
-"""
-def T_integration(u: Array, z: Array, tau: Array, fix_tau: float) -> float:
-    i = np.searchsorted(tau, fix_tau)
-    return np.trapz(u[:, i], z)
-"""
-
 def T_integration(u: Array, z: Array, tau: Array, interval: int) -> Tuple[Array, Array]:
 
     ind = np.linspace(0,u.shape[1]-1, interval).astype(int)
@@ -213,9 +207,9 @@ def main(
     if surface_plot:
         plot_3d(z, tau, u, title)
 
-
 SAVE_FIG = True
 SHOW_FIG = False
+
 if __name__ == "__main__":
     for epsilon in [0, 0.01]:
         main(epsilon=epsilon, analytic_reduction=False, surface_plot=True, Tplot=True)
