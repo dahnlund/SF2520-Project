@@ -34,7 +34,7 @@ def create_DAE_system(A: Array, M: int, N: int, dtau: float, epsilon: float = 0)
 
 def impl_euler(LHS: Any, RHS: Callable, u0: Array, dtau: float) -> Array:
     """Implicit Euler."""
-    tau = np.linspace(dtau, 1, int(1/dtau))
+    tau = np.linspace(dtau, 1, int(1 / dtau))
     n_steps = len(tau)
     u = np.zeros((len(u0), n_steps + 1))
     u[:, 0] = u0
@@ -107,10 +107,10 @@ def create_A(
     A = sp.vstack([block1, block2, block3])
     return A
 
-def T_integration(u: Array, z: Array, tau: Array, interval: int) -> Tuple[Array, Array]:
 
-    ind = np.linspace(0,u.shape[1]-1, interval).astype(int)
-    concentrations = np.trapz(u[:,ind],z, axis = 0)
+def T_integration(u: Array, z: Array, tau: Array, interval: int) -> Tuple[Array, Array]:
+    ind = np.linspace(0, u.shape[1] - 1, interval).astype(int)
+    concentrations = np.trapz(u[:, ind], z, axis=0)
 
     return concentrations, tau[ind]
 
@@ -143,8 +143,9 @@ def plot_3d(z: Array, tau: Array, u: Array, title: str):
     ax.set_title(title)
     show_save_fig(f"3dplot/{title}")
 
+
 def plot_T(concentrations: Array, tau_locations: Array, title: str):
-    plt.plot(tau_locations, concentrations, label = title)
+    plt.plot(tau_locations, concentrations, label=title)
     plt.title("Total concentration as a function of tau")
     plt.xlabel("tau")
     plt.ylabel("Total concentration")
@@ -174,13 +175,13 @@ def main(
     curve_plot=True,
     surface_plot=False,
     analytic_reduction=False,
-    Tplot = False,
-    interval = 11
+    T_plot=False,
+    interval=11,
 ):
     if analytic_reduction:
         N = 0
         # Doesn't make a difference, but want create_DAE to use the right RHS
-        epsilon = False 
+        epsilon = False
     else:
         N = round(M * w)
 
@@ -192,28 +193,31 @@ def main(
         beta = np.tanh(w * np.sqrt(gamma)) * alpha * np.sqrt(gamma)
         u[-1, :] = 1 / (3 + 2 * (z[1] - z[0]) * beta) * (4 * u[-2, :] - u[-3, :])
 
-    tau = np.linspace(0, 1, int(1/dtau)+1)
+    tau = np.linspace(0, 1, int(1 / dtau) + 1)
     title = f"{eta=} {gamma=} {alpha=} {w=} {M=} {epsilon=} {dtau=}"
     print("\n", title)
-    
-    if Tplot == True:
-        concentrations, tau_locations = T_integration(u[:M+1,:], z[:M+1], tau, interval)
+
+    if T_plot:
+        concentrations, tau_locations = T_integration(
+            u[: M + 1, :], z[: M + 1], tau, interval
+        )
         for ind, val in enumerate(concentrations):
             print(f"T({tau_locations[ind]:.2f}) = {val:.4f}")
-        plot_T(concentrations, tau_locations, title = title)
+        plot_T(concentrations, tau_locations, title=title)
 
     if curve_plot:
         plot_curve_sequence(z, tau, u, w, title)
     if surface_plot:
         plot_3d(z, tau, u, title)
 
+
 SAVE_FIG = True
 SHOW_FIG = False
 
 if __name__ == "__main__":
     for epsilon in [0, 0.01]:
-        main(epsilon=epsilon, analytic_reduction=False, surface_plot=True, Tplot=True)
+        main(epsilon=epsilon, analytic_reduction=False, surface_plot=True, T_plot=True)
 
-    main(analytic_reduction=True, surface_plot=True, Tplot = True)
+    main(analytic_reduction=True, surface_plot=True, T_plot=True)
 
 # %%
