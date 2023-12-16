@@ -59,17 +59,16 @@ def create_A(
 ) -> Array:
     """Creates the A matrix for the"""
     dz = 1 / M
-
-    A1_data = [
-        eta * np.ones(M - 1) / (v(z[1:M] + dz) * dz**2),
-        -2 * eta * np.ones(M - 1) / (v(z[1:M]) * dz**2),
-        eta * np.ones(M - 1) / (v(z[1:M] - dz) * dz**2),
-    ]
+    A1_data = eta * np.ones((3, M - 1)) / dz**2
+    print(A1_data.shape, z.shape)
+    A1_data[0, :-1] *= 1 / v(z[1:M-1] + dz)
+    A1_data[1] *= -2 / v(z[1:M])
+    A1_data[2, 1:] *= 1 / v(z[2:M] - dz)
+    # Adjust first row for first boundary condition:
+    A1_data[1, 0] *= 1 / 3
+    A1_data[2, 1] *= 2 / 3
     A1 = sp.spdiags(A1_data, [-1, 0, 1], format="csc")
 
-    # Adjust for first boundary condition:
-    A1[0, 0] = eta / (v(z[1]) * dz**2) * (-2 / 3)
-    A1[0, 1] = eta / (v(z[1]) * dz**2) * (2 / 3)
 
     if analytic_reduction:
         beta = np.tanh(w * np.sqrt(gamma)) * alpha * np.sqrt(gamma)
@@ -111,7 +110,6 @@ def create_A(
 def T_integration(u: Array, z: Array, tau: Array, interval: int) -> Tuple[Array, Array]:
     ind = np.linspace(0, u.shape[1] - 1, interval).astype(int)
     concentrations = np.trapz(u[:, ind], z, axis=0)
-
     return concentrations, tau[ind]
 
 
@@ -199,7 +197,7 @@ def main(
 
     if T_plot:
         concentrations, tau_locations = T_integration(
-            u[: M + 1, :], z[: M + 1], tau, interval
+            u[: M + 1], z[: M + 1], tau, interval
         )
         for ind, val in enumerate(concentrations):
             print(f"T({tau_locations[ind]:.2f}) = {val:.4f}")
